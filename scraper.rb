@@ -1,25 +1,45 @@
-# This is a template for a Ruby scraper on morph.io (https://morph.io)
-# including some code snippets below that you should find helpful
+require 'scraperwiki'
+require 'mechanize'
 
-# require 'scraperwiki'
-# require 'mechanize'
-#
-# agent = Mechanize.new
-#
-# # Read in a page
-# page = agent.get("http://foo.com")
-#
-# # Find somehing on the page using css selectors
-# p page.at('div.content')
-#
-# # Write out to the sqlite database using scraperwiki library
-# ScraperWiki.save_sqlite(["name"], {"name" => "susan", "occupation" => "software developer"})
-#
-# # An arbitrary query against the database
-# ScraperWiki.select("* from data where 'name'='peter'")
+agent = Mechanize.new
 
-# You don't have to do things with the Mechanize or ScraperWiki libraries.
-# You can use whatever gems you want: https://morph.io/documentation/ruby
-# All that matters is that your final data is written to an SQLite database
-# called "data.sqlite" in the current working directory which has at least a table
-# called "data".
+def scrape_page(page, url)
+  table = page.at("tbody")
+  table.search("tr")[0..-1].each do |tr|
+    day, month, year = tr.search("td")[3].inner_text.split(" ")
+    month_i = Date::MONTHNAMES.index(month)
+
+    record = {
+      "info_url" => url,
+      "comment_url" => url,
+      "council_reference" => tr.at("td a").inner_text.split("(")[0],
+      "on_notice_to" => Date.new(year.to_i, month_i, day.to_i).to_s,
+      "address" => tr.search("td")[1].inner_text + ", VIC",
+      "description" => tr.search("td")[2].inner_text,
+      "date_scraped" => Date.today.to_s
+    }
+    
+    # Check if record already exists
+    if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
+      ScraperWiki.save_sqlite(['council_reference'], record)
+    else
+      puts "Skipping already saved record " + record['council_reference']
+    end
+  end
+end
+
+
+url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/A-C"
+page = agent.get(url)
+puts "Scraping page A-C..."
+scrape_page(page, url)
+
+url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/D-K"
+page = agent.get(url)
+puts "Scraping page D-K..."
+scrape_page(page, url)
+
+url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/L-Z"
+page = agent.get(url)
+puts "Scraping page L-Z..."
+scrape_page(page, url)
