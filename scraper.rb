@@ -7,7 +7,10 @@ def scrape_page(page, url)
   table = page.at("tbody")
   table.search("tr")[0..-1].each do |tr|
     day, month, year = tr.search("td")[3].inner_text.split(" ")
-    month_i = Date::MONTHNAMES.index(month)
+    month_i = Date::MONTHNAMES.index(month.strip)
+
+    # Occasionally we get a leading nbsp character (ascii 160)
+    day = day.gsub(/[[:space:]]/, '')
 
     record = {
       "info_url" => url,
