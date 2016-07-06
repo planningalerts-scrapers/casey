@@ -12,10 +12,14 @@ def scrape_page(page, url)
     # Occasionally we get a leading nbsp character (ascii 160)
     day = day.gsub(/[[:space:]]/, '')
 
+    #Will remove all whitespace and unicode variants
+    council_reference = tr.at("td a").inner_text.split("(")[0]
+    council_reference_stripped = council_reference.gsub(/\A[[:space:]]+|[[:space:]]+\z/, '')
+
     record = {
       "info_url" => url,
       "comment_url" => url,
-      "council_reference" => tr.at("td a").inner_text.split("(")[0],
+      "council_reference" => council_reference_stripped,
       "on_notice_to" => Date.new(year.to_i, month_i, day.to_i).to_s,
       "address" => tr.search("td")[1].inner_text + ", VIC",
       "description" => tr.search("td")[2].inner_text,
