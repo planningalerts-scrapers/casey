@@ -31,7 +31,6 @@ def scrape_page(page, url)
     # Check if record already exists
     if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
       ScraperWiki.save_sqlite(['council_reference'], record)
-      puts record
     else
       puts "Skipping already saved record " + record['council_reference']
     end
