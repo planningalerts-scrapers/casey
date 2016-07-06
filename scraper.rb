@@ -16,8 +16,6 @@ def scrape_page(page, url)
     council_reference = tr.at("td a").inner_text.split("(")[0]
     council_reference_stripped = council_reference.gsub(/\A[[:space:]]+|[[:space:]]+\z/, '')
 
-    puts council_reference
-    puts council_reference_stripped
     record = {
       "info_url" => url,
       "comment_url" => url,
