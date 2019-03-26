@@ -9,10 +9,10 @@ page = agent.get(url)
 
 _json = JSON.parse(page.body)
 if ( _json['pager'] )
-  for i in 0.._json['pager']['total_pages'] - 1 do
-    puts "Scraping page " + (i+1).to_s + " of " + _json['pager']['total_pages'].to_s
+  for i in 1.._json['pager']['total_pages'] do
+    puts "Scraping page " + i.to_s + " of " + _json['pager']['total_pages'].to_s
 
-    url = "https://www.casey.vic.gov.au/api/planning-applications?_format=json&page=" + i.to_s
+    url = "https://www.casey.vic.gov.au/api/planning-applications?_format=json&page=" + (i-1).to_s
     page = agent.get(url)
     _json = JSON.parse(page.body)
 
