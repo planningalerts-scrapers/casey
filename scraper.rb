@@ -1,52 +1,43 @@
 require 'scraperwiki'
 require 'mechanize'
+require 'json'
 
 agent = Mechanize.new
+url = "https://www.casey.vic.gov.au/api/planning-applications?_format=json&page=0"
+page = agent.get(url)
 
-def scrape_page(page, url)
-  table = page.at("tbody")
-  table.search("tr")[0..-1].each do |tr|
-    day, month, year = tr.search("td")[3].inner_text.split(" ")
-    month_i = Date::MONTHNAMES.index(month.strip)
 
-    # Occasionally we get a leading nbsp character (ascii 160)
-    day = day.gsub(/[[:space:]]/, '')
+_json = JSON.parse(page.body)
+if ( _json['pager'] )
+  for i in 0.._json['pager']['total_pages'] - 1 do
+    puts "Scraping page " + (i+1).to_s + " of " + _json['pager']['total_pages'].to_s
 
-    #Will remove all whitespace and unicode variants
-    council_reference = tr.at("td a").inner_text.split("(")[0]
-    council_reference_stripped = council_reference.gsub(/\A[[:space:]]+|[[:space:]]+\z/, '')
+    url = "https://www.casey.vic.gov.au/api/planning-applications?_format=json&page=" + i.to_s
+    page = agent.get(url)
+    _json = JSON.parse(page.body)
 
-    record = {
-      "info_url" => url,
-      "comment_url" => url,
-      "council_reference" => council_reference_stripped,
-      "on_notice_to" => Date.new(year.to_i, month_i, day.to_i).to_s,
-      "address" => tr.search("td")[1].inner_text + ", VIC",
-      "description" => tr.search("td")[2].inner_text,
-      "date_scraped" => Date.today.to_s
-    }
-    
-    # Check if record already exists
-    if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
-      ScraperWiki.save_sqlite(['council_reference'], record)
-    else
-      puts "Skipping already saved record " + record['council_reference']
+    _json['rows'].each do |row|
+
+      record = {
+        'council_reference' => row['application_number'].to_s.strip,
+        'address'           => row['field_coc_address'].to_s.strip + ', ' + row['field_coc_suburb_ref'].to_s.strip,
+        'description'       => row['field_coc_proposal'].to_s.strip,
+        'info_url'          => 'https://www.casey.vic.gov.au/view-planning-applications',
+        'comment_url'       => 'https://www.casey.vic.gov.au/contact-us',
+        'date_scraped'      => Date.today.to_s,
+        'on_notice_to'      => Date.parse(row['field_coc_date'].to_s).to_s.strip,
+      }
+
+      if (ScraperWiki.select("* from data where `council_reference`='#{record['council_reference']}'").empty? rescue true)
+        record['address'] = record['address'] + ', VIC'
+        puts "Saving record " + record['council_reference'] + ", " + record['address']
+#         puts record
+        ScraperWiki.save_sqlite(['council_reference'], record)
+      else
+        puts "Skipping already saved record " + record['council_reference']
+      end
     end
   end
+else
+  puts "Invalid JSON received"
 end
-
-
-url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/A-C"
-page = agent.get(url)
-puts "Scraping page A-C..."
-scrape_page(page, url)
-
-url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/D-K"
-page = agent.get(url)
-puts "Scraping page D-K..."
-scrape_page(page, url)
-
-url = "http://www.casey.vic.gov.au/building-planning/planning-documents-on-exhibition/Advertised-planning-applications/L-Z"
-page = agent.get(url)
-puts "Scraping page L-Z..."
-scrape_page(page, url)
