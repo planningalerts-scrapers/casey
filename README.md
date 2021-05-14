@@ -1,9 +1,3 @@
-# City of Casey council scraper
+# Archived
 
-* Server - Unknown
-* Cookie tracking - No
-* Pagnation - Yes
-* JSON - Yes
-* Clearly defined data within a row - Yes
-
-Enjoy
+They moved over to using Tech One
